@@ -7,14 +7,15 @@
 
 #include <iostream>
 #include <fstream>
-#include <json>
+#include <json/json.hpp>
+using json = nlohmann::json;
 
 int main (int argc, char **argv) {
   
   // Load ISD file;  
-  csm::Isd imageSupportData("EN1007907102M.json");
+  csm::Isd imageSupportData("simpleFramerISD.json");
     
-  std::ifstream isdFile("EN1007907102M.json");
+  std::ifstream isdFile("simpleFramerISD.json");
   json jsonIsd = json::parse(isdFile);
   imageSupportData.clearAllParams();
   for (json::iterator it = jsonIsd.begin(); it != jsonIsd.end(); ++it) {
