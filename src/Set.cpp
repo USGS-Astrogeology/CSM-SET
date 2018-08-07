@@ -41,15 +41,16 @@ int main() {
   csm::Model *cameraModel = framePlugin.constructModelFromISD(imageSupportData,
                                                               "USGS_ASTRO_FRAME_SENSOR_MODEL",
                                                               warnings);
+  // TODO: Do we want to do a dynamic cast here or is there a better solution? It is needed to call methods below...
   UsgsAstroFrameSensorModel *frameModel = dynamic_cast<UsgsAstroFrameSensorModel *>(cameraModel);
 
   // Grab the Camera Model model state to get the sun location
   std::string modelState = cameraModel->getModelState(); 
   json parsedIsd = json::parse(modelState);
 
-  // TODO: actually use the values from the CSM camera model for the phase angle calculation
-
   // Calculate the phase angle
+  // TODO: actually use the values from the CSM camera model for the phase angle calculation
+  // TODO: let user pass in image point/ground point 
   csm::ImageCoord imagePt(0.0, 0.0);
   csm::EcefVector lookDirUnit = frameModel->imageToRemoteImagingLocus(imagePt).direction;
   std::vector<double> lookDir = {lookDirUnit.x, lookDirUnit.y, lookDirUnit.z};
@@ -57,11 +58,15 @@ int main() {
   // sun pos (center body to center sun)
   // is body fixed ground coordinated (center body to ground point)
   // minus the illumination direction (center sun to ground point)
-  csm::EcefCoord groundPoint = frameModel->imageToGround(imagePt, 0.0);
+  csm::EcefCoord groundPoint = frameModel->imageToGround(imagePt, 0.0); // TODO: Change height from 0.0?
   csm::EcefVector illumDir = frameModel->getIlluminationDirection(groundPoint);
-  std::vector<double> sunPosition = {groundPoint.x - illumDir.x, groundPoint.y - illumDir.y, groundPoint.z - illumDir.z};
+  std::vector<double> sunPosition = {groundPoint.x - illumDir.x, 
+	                             groundPoint.y - illumDir.y, 
+				     groundPoint.z - illumDir.z};
   
   double phaseAngle = PhaseAngle(lookDir, sunPosition);
+
+  // TODO: all of these may not be needed. keep for debugging purposes right now
   std::cout << "Image Coord: " << imagePt.samp << ", " << imagePt.line << std::endl; 
   std::cout << "Look Dir: " << lookDir[0] << ", " << lookDir[1] << ", " << lookDir[2] << std::endl; 
   std::cout << "Groud Point: " << groundPoint.x << ", " << groundPoint.y << ", " << groundPoint.z << std::endl; 
