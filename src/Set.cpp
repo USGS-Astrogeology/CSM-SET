@@ -39,8 +39,10 @@ int main() {
   csm::WarningList *warnings;
   UsgsAstroFramePlugin framePlugin;
   csm::Model *cameraModel = framePlugin.constructModelFromISD(imageSupportData,
-                                                             "USGS_ASTRO_FRAME_SENSOR_MODEL",
+                                                              "USGS_ASTRO_FRAME_SENSOR_MODEL",
                                                               warnings);
+  UsgsAstroFrameSensorModel *frameModel = dynamic_cast<UsgsAstroFrameSensorModel *>(cameraModel);
+
   // Grab the Camera Model model state to get the sun location
   std::string modelState = cameraModel->getModelState(); 
   json parsedIsd = json::parse(modelState);
@@ -48,10 +50,23 @@ int main() {
   // TODO: actually use the values from the CSM camera model for the phase angle calculation
 
   // Calculate the phase angle
-  std::vector<double> lookDir = {0.0, 0.0, 0.0};
-  std::vector<double> sunPosition = {0.0, 0.0, 0.0};
+  csm::ImageCoord imagePt(0.0, 0.0);
+  csm::EcefVector lookDirUnit = frameModel->imageToRemoteImagingLocus(imagePt).direction;
+  std::vector<double> lookDir = {lookDirUnit.x, lookDirUnit.y, lookDirUnit.z};
+
+  // sun pos (center body to center sun)
+  // is body fixed ground coordinated (center body to ground point)
+  // minus the illumination direction (center sun to ground point)
+  csm::EcefCoord groundPoint = frameModel->imageToGround(imagePt, 0.0);
+  csm::EcefVector illumDir = frameModel->getIlluminationDirection(groundPoint);
+  std::vector<double> sunPosition = {groundPoint.x - illumDir.x, groundPoint.y - illumDir.y, groundPoint.z - illumDir.z};
   
   double phaseAngle = PhaseAngle(lookDir, sunPosition);
+  std::cout << "Image Coord: " << imagePt.samp << ", " << imagePt.line << std::endl; 
+  std::cout << "Look Dir: " << lookDir[0] << ", " << lookDir[1] << ", " << lookDir[2] << std::endl; 
+  std::cout << "Groud Point: " << groundPoint.x << ", " << groundPoint.y << ", " << groundPoint.z << std::endl; 
+  std::cout << "Illum Dir: " << illumDir.x << ", " << illumDir.y << ", " << illumDir.z << std::endl; 
+  std::cout << "Sun Pos: " << sunPosition[0] << ", " << sunPosition[1] << ", " << sunPosition[2] << std::endl; 
   std::cout << "Phase Angle: " << phaseAngle << std::endl; 
 
   return 0;
