@@ -41,15 +41,20 @@ int main() {
   csm::Model *cameraModel = framePlugin.constructModelFromISD(imageSupportData,
                                                               "USGS_ASTRO_FRAME_SENSOR_MODEL",
                                                               warnings);
+
   // TODO: Do we want to do a dynamic cast here or is there a better solution? It is needed to call methods below...
   UsgsAstroFrameSensorModel *frameModel = dynamic_cast<UsgsAstroFrameSensorModel *>(cameraModel);
+
+  if (frameModel == NULL) {
+    std::cout << "Failed to create a UsgsAstroFrameSensorModel!" << std::endl; 
+    return 1; 
+  }
 
   // Grab the Camera Model model state to get the sun location
   std::string modelState = cameraModel->getModelState(); 
   json parsedIsd = json::parse(modelState);
 
   // Calculate the phase angle
-  // TODO: actually use the values from the CSM camera model for the phase angle calculation
   // TODO: let user pass in image point/ground point 
   csm::ImageCoord imagePt(0.0, 0.0);
   csm::EcefVector lookDirUnit = frameModel->imageToRemoteImagingLocus(imagePt).direction;
@@ -61,8 +66,8 @@ int main() {
   csm::EcefCoord groundPoint = frameModel->imageToGround(imagePt, 0.0); // TODO: Change height from 0.0?
   csm::EcefVector illumDir = frameModel->getIlluminationDirection(groundPoint);
   std::vector<double> sunPosition = {groundPoint.x - illumDir.x, 
-	                             groundPoint.y - illumDir.y, 
-				     groundPoint.z - illumDir.z};
+                                     groundPoint.y - illumDir.y, 
+                                     groundPoint.z - illumDir.z};
   
   double phaseAngle = PhaseAngle(lookDir, sunPosition);
 
